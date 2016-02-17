@@ -3,6 +3,7 @@
 document.getElementById('betBtn').addEventListener('click', bet, false);
 document.getElementById('hit').addEventListener('click', hit, false);
 document.getElementById('stay').addEventListener('click', stay, false);
+document.getElementById('doubleDown').addEventListener('click', doubleDown, false);
 document.getElementById('newRound').addEventListener('click', resetGame, false);
 var instructions = document.getElementById('instructions');
 
@@ -10,6 +11,7 @@ var state = {
   instructions: '',
   wallet: 500,
   betValue: 0,
+  doubleDownBet: 0,
   result: 'Result: '
 }
 
@@ -49,6 +51,8 @@ function didBust(){
     state.result = "Result: Bust!";
     state.wallet -= state.betValue;
     checkGameOver();
+  } else {
+    state.instructions = "Hit or Stay";
   }
   updateUI();
 }
@@ -57,7 +61,7 @@ function bet(){
   if (!state.betValue){
     state.betValue = parseInt(document.getElementById('betInput').value, 10);
     if (state.betValue <= state.wallet && state.betValue > 0){
-      state.instructions = "Hit or Stay";
+      state.instructions = "Hit, Stay, or Double Down";
       deal();
     } else {
       state.instructions = 'Enter a valid input please!';
@@ -118,11 +122,14 @@ function updateHand(handObj){
 }
 
 function hit(){
-  if (state.betValue && playerObj.total < 21 && dealerObj.hand.length == 1){
+  if (state.betValue && playerObj.total <= 21 && dealerObj.hand.length == 1){
     playerObj.hand.push(decks.pop());
     updateHand(playerObj);
     total(playerObj);
     didBust();
+    if(playerObj.total == 9 || playerObj.total == 10 || playerObj.total == 11){
+      state.instructions = "Hit, Stay, or Double Down!";
+    }
   }
   updateUI();
 }
@@ -137,7 +144,23 @@ function stay(){
     }
     whoWins();
   } 
-  
+}
+
+function doubleDown(){
+  if(state.betValue && !state.doubleDownBet){
+    if ( (playerObj.total == 9 || playerObj.total == 10 || playerObj.total == 11) || playerObj.hand.length == 2){
+      state.doubleDownBet = parseInt(document.getElementById('betInput').value, 10);
+      if (state.betValue + state.doubleDownBet <= state.wallet && state.doubleDownBet > 0 && state.doubleDownBet <= state.betValue){
+        state.betValue = state.betValue + state.doubleDownBet;
+        hit();
+        stay();
+      } else {
+        state.instructions = 'Double down must be <= your first bet, and your total bet cannot exceed your wallet';
+        doubleDownBet = 0;
+      }
+    }
+    updateUI();
+  }
 }
 
 function whoWins(){
@@ -171,6 +194,7 @@ function resetGame(){
   dealerObj.hand = [];
   dealerObj.total = 0;
   state.betValue = '';
+  state.doubleDownBet = '';
   state.result = 'Result: ';
   state.instructions = 'Place a Bet!';
   document.getElementById('dealerHand').innerHTML = '';
