@@ -4,6 +4,7 @@ document.getElementById('betBtn').addEventListener('click', bet, false);
 document.getElementById('hit').addEventListener('click', hit, false);
 document.getElementById('stay').addEventListener('click', stay, false);
 document.getElementById('doubleDown').addEventListener('click', doubleDown, false);
+document.getElementById('split').addEventListener('click', splitHand, false);
 document.getElementById('newRound').addEventListener('click', resetGame, false);
 var instructions = document.getElementById('instructions');
 
@@ -160,6 +161,20 @@ function doubleDown(){
       }
     }
     updateUI();
+  }
+}
+
+function splitHand(){
+  if (state.betValue){
+    var newHand = [];
+    newHand.push(playerObj.hand.shift());
+    var newElem = document.createElement('div');
+    var currentDiv = document.getElementById('playerHand');
+    newElem.setAttribute("class", "playersHands");
+    newElem.innerHTML += `<img src="images/cardImages/PNG-cards-1.3/${newHand[newHand.length - 1].img}" height="150" width="100">`;
+    document.getElementById('hands').insertBefore(newElem, currentDiv);
+    currentDiv.innerHTML = '';
+    updateHand(playerObj);
   }
 }
 

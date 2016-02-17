@@ -24,12 +24,14 @@ span {
   font-size: 18px;
 }
 
-#playerHand {
+.playersHands {
   background-color: #d3d3d3;
   border-radius: 5px;
   padding: 10px;
   height: 150px;
   width: 200px;
+  display: inline-block;
+  margin-right: 5px;
 }
 
 #dealerHand {
