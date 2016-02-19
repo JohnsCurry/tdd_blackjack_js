@@ -11,16 +11,12 @@ var instructions = document.getElementById('instructions');
 var state = {
   instructions: '',
   wallet: 500,
-  betValue: 0,
   doubleDownBet: 0,
-  result: 'Result: '
+  maxBetAvailable: 500
 }
 
 function updateUI(){
   document.getElementById('instructions').textContent = state.instructions;
-  document.getElementById('betAmount').textContent = 'Bet: $' + state.betValue;
-  document.getElementById('handTotal').textContent = `Total: ${playerObj.total}`;
-  document.getElementById('result').textContent = `${state.result}`;
   document.getElementById('wallet').textContent = `Wallet: $${state.wallet}`;
 }
 
@@ -45,28 +41,32 @@ function total(obj){
 }
 
 function didBust(){
-  if (playerObj.total == 21){
-    state.result = "Result: BlackJack!";
+  if (playerObj[0].total == 21){
+    playerObj[0].result = "Pending";
     state.instructions = "You better stay...";
-  } else if ( playerObj.total > 21){
-    state.result = "Result: Bust!";
-    state.wallet -= state.betValue;
+  } else if ( playerObj[0].total > 21){
+    playerObj[0].result = "Lose!";
+    state.wallet -= playerObj[0].betValue;
+    updateHand(playerObj[0]);
+    finishedHands.push(playerObj.shift());
     checkGameOver();
   } else {
     state.instructions = "Hit or Stay";
+    updateHand(playerObj[0]);
   }
   updateUI();
 }
 
 function bet(){
-  if (!state.betValue){
-    state.betValue = parseInt(document.getElementById('betInput').value, 10);
-    if (state.betValue <= state.wallet && state.betValue > 0){
+  if (!playerObj[0].betValue){
+    playerObj[0].betValue = parseInt(document.getElementById('betInput').value, 10);
+    if (playerObj[0].betValue <= state.wallet && playerObj[0].betValue > 0){
+      state.maxBetAvailable = state.wallet - playerObj[0].betValue;
       state.instructions = "Hit, Stay, or Double Down";
       deal();
     } else {
       state.instructions = 'Enter a valid input please!';
-      state.betValue = '';
+      playerObj[0].betValue = '';
     }
     updateUI();
   }
@@ -77,7 +77,7 @@ function createDecks(){
   var suits = ['clubs', 'diamonds', 'hearts', 'spades'];
   var decks = [];
   
-  for (var i = 1; i <= 2; i++){
+  for (var i = 1; i <= 1; i++){
     for (suitIndex in suits){
       for (rankIndex in ranks){
         decks.push({
@@ -106,53 +106,74 @@ function shuffleDeck(array) {
 }
 
 function deal(){
-  playerObj.hand.push(decks.pop());
-  updateHand(playerObj);
-  playerObj.hand.push(decks.pop());
-  updateHand(playerObj);
-  dealerObj.hand.push(decks.pop());
-  updateHand(dealerObj);
-  total(playerObj);
+  playerObj[0].hand.push(decks.pop());
+  playerObj[0].hand.push(decks.pop());
+  updateHand(playerObj[0]);
+  dealerObj[0].hand.push(decks.pop());
+  updateHand(dealerObj[0]);
+  total(playerObj[0]);
   didBust();
 }
 
 function updateHand(handObj){
+  //Testing if its the users hand. If it's dealers hand there is no need because dealer doesn't have a "betvalue"
+  if (handObj.betValue){
+    document.getElementById(handObj.id).innerHTML = `<div><span id="${handObj.betAmountId}">Bet: $${handObj.betValue} </span><span id="${handObj.handTotalId}">Total: ${handObj.total}</span></div>`;
+  } else {
+    document.getElementById(handObj.id).innerHTML = `<div><span id="${handObj.handTotalId}">Total: ${handObj.total}</span></div>`;
+  }
+  handObj.hand.forEach(function(element, index, array){
+    document.getElementById(handObj.id).innerHTML += `<img src="images/cardImages/PNG-cards-1.3/${array[index].img}" height="150" width="100">`;
+  });
+  //Just testing if this is the Users hand. If it's the dealers hand, there is no "Result".
+  if (handObj.betValue){
+    document.getElementById(handObj.id).innerHTML += `<span id="${handObj.resultId}">Result: ${handObj.result}</span>`;
+  }
   var numOfPixels = handObj.hand.length * 100;
   document.getElementById(handObj.id).style.width = numOfPixels + 'px';
-  document.getElementById(handObj.id).innerHTML += `<img src="images/cardImages/PNG-cards-1.3/${handObj.hand[handObj.hand.length - 1].img}" height="150" width="100">`;
 }
 
 function hit(){
-  if (state.betValue && playerObj.total <= 21 && dealerObj.hand.length == 1){
-    playerObj.hand.push(decks.pop());
-    updateHand(playerObj);
-    total(playerObj);
-    didBust();
-    if(playerObj.total == 9 || playerObj.total == 10 || playerObj.total == 11){
+  if (playerObj.length > 0 && playerObj[0].betValue && playerObj[0].total <= 21 && dealerObj[0].hand.length == 1){
+    console.log("Got through if 1");
+    playerObj[0].hand.push(decks.pop());
+    total(playerObj[0]);
+    updateHand(playerObj[0]);
+    if(playerObj[0].total == 9 || playerObj[0].total == 10 || playerObj[0].total == 11){
       state.instructions = "Hit, Stay, or Double Down!";
     }
+    updateHand(playerObj[0]);
+    didBust();
+    updateUI();
   }
-  updateUI();
+  
 }
 
 function stay(){
-  if (state.betValue && playerObj.total <= 21){
-    total(dealerObj);
-    while (dealerObj.total < 17){
-      dealerObj.hand.push(decks.pop());
-      updateHand(dealerObj);
-      total(dealerObj);
+  if (playerObj[0].betValue && playerObj[0].total <= 21){
+    //remove first element of array, put it into finished array.
+    total(playerObj[0]);
+    updateHand(playerObj[0]);
+    finishedHands.push(playerObj.shift());
+  }
+  if (playerObj.length == 0){
+    total(dealerObj[0]);
+    while (dealerObj[0].total < 17){
+      dealerObj[0].hand.push(decks.pop());
+      total(dealerObj[0]);
+      updateHand(dealerObj[0]);
     }
     whoWins();
-  } 
+  }
 }
 
 function doubleDown(){
-  if(state.betValue && !state.doubleDownBet){
-    if ( (playerObj.total == 9 || playerObj.total == 10 || playerObj.total == 11) || playerObj.hand.length == 2){
+  if(playerObj[0].betValue && !state.doubleDownBet){
+    if ( (playerObj[0].total == 9 || playerObj[0].total == 10 || playerObj[0].total == 11) || playerObj[0].hand.length == 2){
       state.doubleDownBet = parseInt(document.getElementById('betInput').value, 10);
-      if (state.betValue + state.doubleDownBet <= state.wallet && state.doubleDownBet > 0 && state.doubleDownBet <= state.betValue){
-        state.betValue = state.betValue + state.doubleDownBet;
+      if (state.doubleDownBet <= state.maxBetAvailable && state.doubleDownBet > 0 && state.doubleDownBet <= playerObj[0].betValue){
+        playerObj[0].betValue = playerObj[0].betValue + state.doubleDownBet;
+        state.maxBetAvailable = state.maxBetAvailable - state.doubleDownBet;
         hit();
         stay();
       } else {
@@ -165,32 +186,67 @@ function doubleDown(){
 }
 
 function splitHand(){
-  if (state.betValue){
-    var newHand = [];
-    newHand.push(playerObj.hand.shift());
+  if (playerObj[0].betValue && state.maxBetAvailable >= playerObj[0].betValue){
+    var objId = "playerHand" + splitCounter;
+    var betId = "betAmount" + splitCounter;
+    var handId = "handTotal" + splitCounter;
+    var resultId = "result" + splitCounter;
+    var newObj = {id: objId, total: 0, betAmountId: betId, handTotalId: handId, resultId: resultId, result: 'Pending', betValue: playerObj[0].betValue, hand: []};
+    state.maxBetAvailable = state.maxBetAvailable - playerObj[0].betValue;
+    newObj.hand.push(playerObj[0].hand.shift());
     var newElem = document.createElement('div');
-    var currentDiv = document.getElementById('playerHand');
+    var currentDiv = document.getElementById(playerObj[0].id);
     newElem.setAttribute("class", "playersHands");
-    newElem.innerHTML += `<img src="images/cardImages/PNG-cards-1.3/${newHand[newHand.length - 1].img}" height="150" width="100">`;
+    newElem.setAttribute("id", objId);
+    //newElem.innerHTML += `<div><span id="betAmount${splitCounter}">Bet: $ </span><span id="handTotal${splitCounter}">Total: </span></div>`;
+    //newElem.innerHTML += `<img src="images/cardImages/PNG-cards-1.3/${newObj.hand[newObj.hand.length - 1].img}" height="150" width="100">`;
     document.getElementById('hands').insertBefore(newElem, currentDiv);
-    currentDiv.innerHTML = '';
-    updateHand(playerObj);
+    //currentDiv.innerHTML = `<div><span id="betAmount${splitCounter - 1}">Bet: $ </span><span id="handTotal${splitCounter - 1}">Total: </span></div>`;
+    //updateHand(playerObj[0]);
+    hit();
+    //document.getElementById("betAmount" + splitCounter).textContent = "Bet: $" + newObj.betValue;
+    playerObj.unshift(newObj);
+    hit();
+    updateHand(playerObj[0]);
+    updateHand(playerObj[1]);
+    splitCounter++;
   }
 }
 
 function whoWins(){
-  if(dealerObj.total > playerObj.total && dealerObj.total <= 21){
-    state.result = "Result: You Lose!";
-    state.wallet -= state.betValue;
-    checkGameOver();
-  } else if (dealerObj.total == playerObj.total){
-    state.result = "Result: Tie!";
-  } else {
-    state.result = "Result: You Win!";
-    state.wallet += state.betValue;
-  }
+
+  for (var i in finishedHands){
+    if(dealerObj[0].total > finishedHands[i].total && dealerObj[0].total <= 21){
+      finishedHands[i].result = "Lose!";
+      state.wallet -= finishedHands[i].betValue;
+      checkGameOver();
+    } else if (dealerObj[0].total == finishedHands[i].total){
+      finishedHands[i].result = "Tie!";
+    } else if (finishedHands[i].total <= 21) {
+      finishedHands[i].result = "Win!";
+      state.wallet += finishedHands[i].betValue;
+    }
+    updateHand(finishedHands[i]);
   state.instructions = "Press New Round to Play Again";
   updateUI();
+
+  }
+
+
+
+/*
+  if(dealerObj[0].total > playerObj[0].total && dealerObj[0].total <= 21){
+    playerObj[0].result = "You Lose!";
+    state.wallet -= playerObj[0].betValue;
+    checkGameOver();
+  } else if (dealerObj[0].total == playerObj[0].total){
+    playerObj[0].result = "Tie!";
+  } else {
+    playerObj[0].result = "You Win!";
+    state.wallet += playerObj[0].betValue;
+  }
+  state.instructions = "Press New Round to Play Again";
+  updateUI();*/
 }
 
 function checkGameOver(){
@@ -204,13 +260,24 @@ function checkGameOver(){
 }
 
 function resetGame(){
-  playerObj.hand = [];
-  playerObj.total = 0;
-  dealerObj.hand = [];
-  dealerObj.total = 0;
-  state.betValue = '';
+  playerObj = [{
+    id: 'playerHand0',
+    total: 0,
+    betAmountId: "betAmount0",
+    handTotalId: "handTotal0",
+    resultId: 'result0',
+    result: 'Pending',
+    betValue: 0,
+    hand: []
+  }];
+  playerObj[0].hand = [];
+  playerObj[0].total = 0;
+  dealerObj[0].hand = [];
+  dealerObj[0].total = 0;
+  playerObj[0].betValue = '';
   state.doubleDownBet = '';
-  state.result = 'Result: ';
+  playerObj[0].result = 'Pending';
+  finishedHands = [];
   state.instructions = 'Place a Bet!';
   document.getElementById('dealerHand').innerHTML = '';
   document.getElementById('dealerHand').style.width = '100px';
@@ -219,15 +286,24 @@ function resetGame(){
   updateUI();
 }
 
+//{id: objId, total: 0, betAmountId: betId, handTotalId: handId, betValue: state.betValue, hand: []};
+
 var decks = createDecks();
 var decks = shuffleDeck(decks);
-var playerObj = {
-  id: 'playerHand',
+var splitCounter = 1;
+var finishedHands = [];
+var playerObj = [{
+  id: 'playerHand0',
   total: 0,
+  betAmountId: "betAmount0",
+  handTotalId: "handTotal0",
+  resultId: 'result0',
+  result: 'Pending',
+  betValue: 0,
   hand: []
-}
-var dealerObj = {
+}];
+var dealerObj = [{
   id: 'dealerHand',
   total: 0,
   hand: []
-}
+}];
