@@ -124,7 +124,6 @@ function deal(){
   total(playerObj[0]);
   updateHand(playerObj[0]);
   updateHand(dealerObj[0]);
-  didBust(); //Remove this?
 }
 
 //validates the user still has a hand to play, the user has placed a bet, and the total is <= 21, and that the
@@ -150,10 +149,7 @@ function stay(){
   if (playerObj.length > 0 && playerObj[0].betValue && playerObj[0].total <= 21){
     //remove first element of array, put it into finished array.
     total(playerObj[0]); //Should not need this. Isn't the total already updated?
-    playerObj[0].backGround = '#d3d3d3';
     finishCurrentHand();
-    //updateHand(playerObj[0]);
-    //finishedHands.push(playerObj.shift());
     //If there is still another hand to be played, change That background color to blue, making it the "active" hand.
     //Need to update the hand so the color changes.
     if (playerObj[0]){
@@ -198,6 +194,7 @@ function total(obj){
 }
 
 function finishCurrentHand(){
+  playerObj[0].backGround = '#d3d3d3';
   updateHand(playerObj[0]);
   finishedHands.push(playerObj.shift());
 }
@@ -209,12 +206,13 @@ function finishCurrentHand(){
 function didBust(){
   if ( playerObj[0].total > 21 ){
     playerObj[0].result = "Lose!";
-    playerObj[0].backGround = '#d3d3d3';
     finishCurrentHand();
-    //updateHand(playerObj[0]);
-    //finishedHands.push(playerObj.shift());
-    playerObj[0].backGround = '#08FFFF';
-    updateHand(playerObj[0]);
+    whoWins();
+    checkGameOver();
+    if (playerObj[0]){
+      playerObj[0].backGround = '#08FFFF';
+      updateHand(playerObj[0]);
+    }
   }
   updateUI();
 }
@@ -266,10 +264,7 @@ function doubleDown(){
         state.maxBetAvailable = state.maxBetAvailable - state.doubleDownBet;
         playerObj[0].hand.push(decks.pop());
         total(playerObj[0]);
-        playerObj[0].backGround = '#d3d3d3';
         finishCurrentHand();
-        //updateHand(playerObj[0]);
-        //finishedHands.push(playerObj.shift());
         state.doubleDownBet = 0;
         // makes sure there is still a hand to change the background color of the current hand.
         //If there are no more hands, then stay so the dealer will get his cards so we can see the final results.
@@ -354,12 +349,13 @@ function whoWins(){
 //If wallet is empty, it's game over.
 function checkGameOver(){
   if (state.wallet == 0){
+    console.log("Hi!!!");
     state.instructions = "";
     document.getElementById('top').innerHTML = "<h1>The Casino took all of your money. Have a nice day!</h1>";
   } else {
     state.instructions = "Press New Round to Play Again";
   }
-  updateUI();
+  //updateUI();
 }
 
 //New round. 
