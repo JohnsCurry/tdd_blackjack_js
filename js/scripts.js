@@ -17,7 +17,7 @@ var instructions = document.getElementById('instructions');
 var state = {
   instructions: '',
   wallet: 500,
-  doubleDownBet: 0,
+  doubleDownBet: 0, //Not sure if this is a good way
   maxBetAvailable: 500,
   roundOver: false
 }
